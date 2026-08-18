@@ -1,0 +1,46 @@
+# Run PowerShell as Administrator
+
+# 1. Enable Remote Desktop
+Set-ItemProperty `
+  -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" `
+  -Name "fDenyTSConnections" `
+  -Value 0
+
+# 2. Keep Network Level Authentication enabled
+Set-ItemProperty `
+  -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" `
+  -Name "UserAuthentication" `
+  -Value 1
+
+# 3. Enable the Windows Firewall RDP rules
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+# 4. Create an administrator account
+$Username = "VPSAdmin"
+$Password = Read-Host "Enter a strong password" -AsSecureString
+
+New-LocalUser `
+  -Name $Username `
+  -Password $Password `
+  -AccountNeverExpires
+
+# 5. Add the account to Administrators
+Add-LocalGroupMember `
+  -Group "Administrators" `
+  -Member $Username
+
+# 6. Also allow the account to use RDP
+Add-LocalGroupMember `
+  -Group "Remote Desktop Users" `
+  -Member $Username
+
+# 7. Restart Remote Desktop service
+Restart-Service TermService
+
+# 8. Display the VPS information
+Write-Host ""
+Write-Host "===== VPS RDP SETUP COMPLETE ====="
+Write-Host "Username: $Username"
+Write-Host "RDP Port: 3389"
+Write-Host "Computer: $env:COMPUTERNAME"
+Write-Host "=================================="
